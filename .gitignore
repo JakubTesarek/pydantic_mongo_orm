@@ -1,0 +1,30 @@
+# Python
+.cache
+*.pyc
+__pycache__
+
+# Tests & coverage
+.pytest_cache/
+htmlcov
+.coverage
+coverage.xml
+
+# Style
+.ruff_cache
+
+# Build
+build
+dist
+*.egg-info
+
+# Project files
+.idea
+.vscode
+*.swp
+
+# Mypy
+.mypy_cache/
+
+# Dev
+venv
+.DS_Store
