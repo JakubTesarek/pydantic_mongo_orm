@@ -142,7 +142,7 @@ class Storage:
     @property
     def db(self) -> pymongo.database.Database:
         """Get connected MongoDb database."""
-        if self._db:
+        if self._db is not None:
             return self._db
         raise OrmError('Storage is not connected. Connect to MongoDb using `Storage(...).connect()`.')
 
