@@ -179,7 +179,7 @@ class Storage:
     def find_one(self, model_class: type[T], filter: dict[str, Any]) -> T | None:
         """Find one object."""
         collection = self._get_model_collection(model_class)
-        if data := collection.find_one(filter):
+        if data := collection.find_one(filter=self._norm_form(filter)):
             return self._deserialize_model(model_class, data)
         return None
 
@@ -192,23 +192,35 @@ class Storage:
     ) -> Iterator[T]:
         """Find all objects that match given filter."""
         collection = self._get_model_collection(model_class)
-        for document in collection.find(filter=filter or {}, sort=sort, limit=limit):
+        for document in collection.find(filter=self._norm_form(filter), sort=sort, limit=limit):
             yield self._deserialize_model(model_class, document)
 
     def all(self, model_class: type[T], sort: list[tuple[str, str]] | None = None, limit: int = 0) -> Iterator[T]:
         """Find all objects."""
         collection = self._get_model_collection(model_class)
-        for document in collection.find(filter={}, sort=sort, limit=limit):
+        for document in collection.find(filter=self._norm_form({}), sort=sort, limit=limit):
             yield self._deserialize_model(model_class, document)
 
     def count(self, model_class: type[T], filter: dict[str, Any] | None = None) -> int:
         """Count objects that match filters."""
         collection = self._get_model_collection(model_class)
-        return collection.count_documents(filter or {})
+        return collection.count_documents(self._norm_form(filter or {}))
+
+    def _norm_form(self, data: dict[str, Any]) -> dict[str, Any]:
+        """Normalize any data so they can be processed by MongoDb."""
+        if isinstance(data, pydantic.BaseModel):
+            return self._serialize_model(data)
+        elif isinstance(data, list):
+            return [self._norm_form(v) for v in data]
+        elif isinstance(data, dict):
+            return {k:self._norm_form(v) for k, v in data.items()}
+        else:
+            return data
 
     def _serialize_model(self, model: T) -> dict[str, Any]:
         """Serialize model to dict that can be stored in MongoDb."""
-        return model.model_dump(exclude={'id'})
+        serialized = model.model_dump(exclude={'id'})
+        return self._norm_form(serialized)
 
     def _deserialize_model(self, model_class: type[T], data: dict[str, Any]) -> T:
         """Deserialize model from MongoDb data."""
